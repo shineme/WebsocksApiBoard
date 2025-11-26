@@ -12,6 +12,9 @@ RUN npm ci
 # 复制源代码
 COPY . .
 
+# 创建 public 目录（如果不存在）
+RUN mkdir -p public
+
 # 构建 Next.js 应用
 RUN npm run build
 
@@ -32,7 +35,7 @@ RUN addgroup --system --gid 1001 nodejs && \
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder /app/server.js ./server.js
 
 # 设置正确的权限
