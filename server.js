@@ -15,8 +15,7 @@ const workers = new Map();
 const taskQueue = [];
 const requestLogs = [];
 
-// Task Manager 引用（延迟加载）
-let taskManager = null;
+// Task Manager 通过全局函数访问（由 lib/services/task-manager.ts 设置）
 
 function addLog(log) {
   requestLogs.unshift(log);
@@ -26,14 +25,8 @@ function addLog(log) {
 }
 
 app.prepare().then(async () => {
-  // 动态加载 Task Manager (ES Module)
-  try {
-    const taskManagerModule = await import('./lib/services/task-manager.js');
-    taskManager = taskManagerModule.taskManager;
-    console.log('Task Manager loaded successfully');
-  } catch (err) {
-    console.warn('Task Manager not available:', err.message);
-  }
+  // Task Manager 全局函数将在首次 API 调用时由 task-manager.ts 注册
+  console.log('Waiting for Task Manager global functions to be registered...');
 
   const server = createServer(async (req, res) => {
     try {
@@ -87,8 +80,8 @@ app.prepare().then(async () => {
     }));
 
     // Worker 连接后尝试派发队列中的任务
-    if (taskManager) {
-      taskManager.tryDispatchFromQueue();
+    if (global.tryDispatchFromQueue) {
+      global.tryDispatchFromQueue();
     }
 
     // 处理消息
@@ -102,17 +95,19 @@ app.prepare().then(async () => {
             worker.busy = false;
             worker.currentTaskId = null;
             // Worker 空闲后尝试派发任务
-            if (taskManager) {
-              taskManager.tryDispatchFromQueue();
+            if (global.tryDispatchFromQueue) {
+              global.tryDispatchFromQueue();
             }
             break;
 
           case 'task_complete':
           case 'taskResult':
-            // 处理任务完成 - 通过 Task Manager
-            if (taskManager) {
-              taskManager.handleTaskResult(message.taskId, message.result, null);
+            // 处理任务完成 - 通过全局函数
+            console.log(`[server.js] Received task_complete for taskId: ${message.taskId}`);
+            if (global.handleTaskResult) {
+              global.handleTaskResult(message.taskId, message.result, null);
             } else {
+              console.warn('[server.js] global.handleTaskResult not available');
               worker.busy = false;
               worker.currentTaskId = null;
             }
@@ -130,10 +125,12 @@ app.prepare().then(async () => {
             break;
 
           case 'task_error':
-            // 处理任务错误 - 通过 Task Manager
-            if (taskManager) {
-              taskManager.handleTaskResult(message.taskId, null, message.error);
+            // 处理任务错误 - 通过全局函数
+            console.log(`[server.js] Received task_error for taskId: ${message.taskId}`);
+            if (global.handleTaskResult) {
+              global.handleTaskResult(message.taskId, null, message.error);
             } else {
+              console.warn('[server.js] global.handleTaskResult not available');
               worker.busy = false;
               worker.currentTaskId = null;
             }
@@ -164,8 +161,8 @@ app.prepare().then(async () => {
     ws.on('close', () => {
       console.log(`Worker ${workerId} disconnected`);
       // 通知 Task Manager 处理断线
-      if (taskManager) {
-        taskManager.handleWorkerDisconnect(workerId);
+      if (global.handleWorkerDisconnect) {
+        global.handleWorkerDisconnect(workerId);
       }
       workers.delete(workerId);
     });
@@ -173,8 +170,8 @@ app.prepare().then(async () => {
     // 处理错误
     ws.on('error', (error) => {
       console.error(`Worker ${workerId} error:`, error);
-      if (taskManager) {
-        taskManager.handleWorkerDisconnect(workerId);
+      if (global.handleWorkerDisconnect) {
+        global.handleWorkerDisconnect(workerId);
       }
       workers.delete(workerId);
     });

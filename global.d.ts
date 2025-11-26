@@ -14,6 +14,11 @@ declare global {
   var setWorkerBusy: ((workerId: string, taskId: string) => void) | undefined;
   var setWorkerIdle: ((workerId: string) => void) | undefined;
   var addTask: ((task: any) => void) | undefined;
+
+  // Task Manager functions (set by task-manager.ts)
+  var handleTaskResult: ((taskId: string, result: any, error?: string) => void) | undefined;
+  var handleWorkerDisconnect: ((workerId: string) => void) | undefined;
+  var tryDispatchFromQueue: (() => void) | undefined;
 }
 
 export {};

@@ -342,13 +342,19 @@ class TaskManager {
    * Requirements: 1.2, 1.3, 1.4, 2.4
    */
   handleTaskResult(taskId: string, result: any, error?: string): void {
+    console.log(`[TaskManager] handleTaskResult called for taskId: ${taskId}`);
+    console.log(`[TaskManager] pendingTasks count: ${this.pendingTasks.size}`);
+    console.log(`[TaskManager] pendingTasks keys: ${Array.from(this.pendingTasks.keys()).join(', ')}`);
+    
     const pendingTask = this.pendingTasks.get(taskId);
     
     // Handle late result gracefully (task may have timed out)
     if (!pendingTask) {
-      console.log(`Late result for task ${taskId}, ignoring`);
+      console.log(`[TaskManager] Late result for task ${taskId}, ignoring (not found in pendingTasks)`);
       return;
     }
+    
+    console.log(`[TaskManager] Found pending task, resolving...`);
 
     // Clear timeout
     clearTimeout(pendingTask.timeoutId);
@@ -369,12 +375,15 @@ class TaskManager {
 
     if (error) {
       // Store failed result
+      console.log(`[TaskManager] Task ${taskId} failed with error: ${error}`);
       this.storeTaskResult(taskId, 'failed', undefined, error);
       pendingTask.reject(new Error(error));
     } else {
       // Store successful result
+      console.log(`[TaskManager] Task ${taskId} completed successfully, calling resolve`);
       this.storeTaskResult(taskId, 'completed', result);
       pendingTask.resolve(result);
+      console.log(`[TaskManager] Task ${taskId} resolve called`);
     }
 
     // Try to dispatch next task from queue
@@ -608,3 +617,21 @@ class TaskManager {
 
 // Singleton instance
 export const taskManager = new TaskManager();
+
+// Export global functions for server.js to call
+// This ensures the same instance is used across API routes and WebSocket handlers
+if (typeof global !== 'undefined') {
+  (global as any).handleTaskResult = (taskId: string, result: any, error?: string) => {
+    taskManager.handleTaskResult(taskId, result, error || undefined);
+  };
+  
+  (global as any).handleWorkerDisconnect = (workerId: string) => {
+    taskManager.handleWorkerDisconnect(workerId);
+  };
+  
+  (global as any).tryDispatchFromQueue = () => {
+    taskManager.tryDispatchFromQueue();
+  };
+  
+  console.log('[TaskManager] Global functions registered');
+}
