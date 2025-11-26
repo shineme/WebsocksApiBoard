@@ -4,16 +4,19 @@ const next = require('next');
 const { WebSocketServer } = require('ws');
 
 const dev = process.env.NODE_ENV !== 'production';
-const hostname = dev ? 'localhost' : '0.0.0.0'; // 生产环境监听所有接口
+const hostname = dev ? 'localhost' : '0.0.0.0';
 const port = parseInt(process.env.PORT || '3000', 10);
 
 const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
 
-// 简单的 Worker 管理
+// Worker 管理
 const workers = new Map();
 const taskQueue = [];
 const requestLogs = [];
+
+// Task Manager 引用（延迟加载）
+let taskManager = null;
 
 function addLog(log) {
   requestLogs.unshift(log);
@@ -22,7 +25,16 @@ function addLog(log) {
   }
 }
 
-app.prepare().then(() => {
+app.prepare().then(async () => {
+  // 动态加载 Task Manager (ES Module)
+  try {
+    const taskManagerModule = await import('./lib/services/task-manager.js');
+    taskManager = taskManagerModule.taskManager;
+    console.log('Task Manager loaded successfully');
+  } catch (err) {
+    console.warn('Task Manager not available:', err.message);
+  }
+
   const server = createServer(async (req, res) => {
     try {
       const parsedUrl = parse(req.url, true);
@@ -40,12 +52,12 @@ app.prepare().then(() => {
     path: '/ws'
   });
 
-  // Worker 计数器（用于生成简短的序号）
+
+  // Worker 计数器
   let workerCounter = 0;
 
   wss.on('connection', (ws, req) => {
     workerCounter++;
-    // 生成更易读的 Worker ID：序号 + 时间戳后4位 + 随机字符
     const timestamp = Date.now().toString().slice(-4);
     const random = Math.random().toString(36).substring(2, 6);
     const workerId = `W${workerCounter}-${timestamp}${random}`;
@@ -74,6 +86,11 @@ app.prepare().then(() => {
       message: 'Connected to Task Dispatcher'
     }));
 
+    // Worker 连接后尝试派发队列中的任务
+    if (taskManager) {
+      taskManager.tryDispatchFromQueue();
+    }
+
     // 处理消息
     ws.on('message', (data) => {
       try {
@@ -84,11 +101,21 @@ app.prepare().then(() => {
           case 'ready':
             worker.busy = false;
             worker.currentTaskId = null;
+            // Worker 空闲后尝试派发任务
+            if (taskManager) {
+              taskManager.tryDispatchFromQueue();
+            }
             break;
 
           case 'task_complete':
-            worker.busy = false;
-            worker.currentTaskId = null;
+          case 'taskResult':
+            // 处理任务完成 - 通过 Task Manager
+            if (taskManager) {
+              taskManager.handleTaskResult(message.taskId, message.result, null);
+            } else {
+              worker.busy = false;
+              worker.currentTaskId = null;
+            }
             addLog({
               id: `log-${Date.now()}`,
               timestamp: Date.now(),
@@ -103,8 +130,13 @@ app.prepare().then(() => {
             break;
 
           case 'task_error':
-            worker.busy = false;
-            worker.currentTaskId = null;
+            // 处理任务错误 - 通过 Task Manager
+            if (taskManager) {
+              taskManager.handleTaskResult(message.taskId, null, message.error);
+            } else {
+              worker.busy = false;
+              worker.currentTaskId = null;
+            }
             addLog({
               id: `log-${Date.now()}`,
               timestamp: Date.now(),
@@ -127,15 +159,23 @@ app.prepare().then(() => {
       }
     });
 
+
     // 处理断开连接
     ws.on('close', () => {
       console.log(`Worker ${workerId} disconnected`);
+      // 通知 Task Manager 处理断线
+      if (taskManager) {
+        taskManager.handleWorkerDisconnect(workerId);
+      }
       workers.delete(workerId);
     });
 
     // 处理错误
     ws.on('error', (error) => {
       console.error(`Worker ${workerId} error:`, error);
+      if (taskManager) {
+        taskManager.handleWorkerDisconnect(workerId);
+      }
       workers.delete(workerId);
     });
 
@@ -151,11 +191,11 @@ app.prepare().then(() => {
 
   // 导出数据访问函数供 API 使用
   global.getWorkers = () => workers;
-  global.getTaskQueue = () => taskQueue;
+  global.getTaskQueue = () => taskManager ? taskManager.getTaskQueue() : taskQueue;
   global.getRequestLogs = () => requestLogs;
   global.addLog = addLog;
 
-  // 添加 Worker 管理函数
+  // Worker 管理函数
   global.addWorker = (id, ws, ip) => {
     workers.set(id, {
       id,

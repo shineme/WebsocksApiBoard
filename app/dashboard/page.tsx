@@ -2,8 +2,40 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Sun, Cloud, Leaf, Feather, Clock, Zap, Home, ScrollText, Heart, Compass, LogOut, PlayCircle, ChevronDown, ChevronUp, Terminal, Copy, Check } from 'lucide-react';
+import { Cloud, Leaf, Clock, Zap, Home, ScrollText, Heart, Compass, LogOut, PlayCircle, ChevronDown, ChevronUp, Terminal, Copy, Check, ListTodo } from 'lucide-react';
 import { DashboardMetrics, Worker, RequestLog } from '@/lib/types/dashboard';
+
+// Task queue item type
+interface QueuedTaskInfo {
+  taskId: string;
+  type: string;
+  group: string;
+  enqueuedAt: number;
+  timeout: number;
+  async: boolean;
+  position: number;
+  waitTime: number;
+  payload: any;
+}
+
+// Executing task type
+interface ExecutingTaskInfo {
+  taskId: string;
+  workerId: string;
+  startedAt: number;
+  executionTime: number;
+  payload: any;
+}
+
+// 格式化 JSON 字符串
+function formatJsonString(str: string): string {
+  try {
+    const parsed = JSON.parse(str);
+    return JSON.stringify(parsed, null, 2);
+  } catch {
+    return str;
+  }
+}
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -19,6 +51,9 @@ export default function DashboardPage() {
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState('');
   const [selectedGroup, setSelectedGroup] = useState<string>('all');
+  const [taskQueue, setTaskQueue] = useState<QueuedTaskInfo[]>([]);
+  const [executingTasks, setExecutingTasks] = useState<ExecutingTaskInfo[]>([]);
+  const [pendingCount, setPendingCount] = useState<number>(0);
 
   // 检查认证状态
   useEffect(() => {
@@ -118,6 +153,29 @@ export default function DashboardPage() {
     const interval = setInterval(fetchLogs, 1500);
     return () => clearInterval(interval);
   }, [authenticated, fetchLogs]);
+
+  // 获取任务队列
+  const fetchTaskQueue = useCallback(async () => {
+    try {
+      const response = await fetch('/api/dashboard/tasks');
+      if (response.ok) {
+        const data = await response.json();
+        setTaskQueue(data.tasks || []);
+        setExecutingTasks(data.executingTasks || []);
+        setPendingCount(data.pendingCount || 0);
+      }
+    } catch (err) {
+      console.error('Error fetching task queue:', err);
+    }
+  }, []);
+
+  // 每 2 秒刷新任务队列
+  useEffect(() => {
+    if (!authenticated) return;
+    fetchTaskQueue();
+    const interval = setInterval(fetchTaskQueue, 2000);
+    return () => clearInterval(interval);
+  }, [authenticated, fetchTaskQueue]);
 
   // 分配任务给 Worker
   const assignTask = async (workerId: string) => {
@@ -267,11 +325,11 @@ export default function DashboardPage() {
                   unit="个"
                 />
                 <MetricCard
-                  title="队列深度"
-                  value={queueLength}
+                  title="队列/执行中"
+                  value={`${taskQueue.length}/${pendingCount}`}
                   icon={Cloud}
                   color="sky"
-                  progress={Math.min(queueLength * 10, 100)}
+                  progress={Math.min((taskQueue.length + pendingCount) * 10, 100)}
                   unit="个任务"
                 />
                 <MetricCard
@@ -371,6 +429,14 @@ export default function DashboardPage() {
                 </div>
               </div>
 
+              {/* Task Queue Section */}
+              <TaskQueuePanel 
+                taskQueue={taskQueue}
+                executingTasks={executingTasks}
+                pendingCount={pendingCount}
+                onRefresh={fetchTaskQueue}
+              />
+
               {/* API Documentation Section */}
               <ApiDocumentation />
             </div>
@@ -416,15 +482,39 @@ export default function DashboardPage() {
 
                     {expandedLogId === log.id && (
                       <div className="px-4 pb-4 bg-gray-50/50 border-t border-gray-100">
-                        <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <span className="block text-xs font-bold text-gray-400 uppercase mb-1">耗时</span>
-                            <span className="font-mono text-gray-700">{log.latency}毫秒</span>
+                        <div className="mt-4 space-y-4 text-sm">
+                          <div className="flex items-center space-x-6">
+                            <div>
+                              <span className="text-xs font-bold text-gray-400 uppercase">耗时</span>
+                              <span className="font-mono text-gray-700 ml-2">{log.latency}ms</span>
+                            </div>
+                            {log.taskId && (
+                              <div>
+                                <span className="text-xs font-bold text-gray-400 uppercase">TaskId</span>
+                                <span className="font-mono text-gray-700 ml-2">{log.taskId}</span>
+                              </div>
+                            )}
                           </div>
-                          <div>
-                            <span className="block text-xs font-bold text-gray-400 uppercase mb-1">请求内容</span>
-                            <span className="font-mono text-gray-700 truncate block" title={log.requestBody}>{log.requestBody || '-'}</span>
-                          </div>
+                          {log.requestBody && (
+                            <div>
+                              <span className="block text-xs font-bold text-gray-400 uppercase mb-2">请求内容</span>
+                              <div className="bg-gray-900 rounded-lg p-3 overflow-x-auto">
+                                <pre className="font-mono text-xs text-green-400 whitespace-pre-wrap break-all max-h-40 overflow-y-auto">
+                                  {formatJsonString(log.requestBody)}
+                                </pre>
+                              </div>
+                            </div>
+                          )}
+                          {log.responseBody && (
+                            <div>
+                              <span className="block text-xs font-bold text-gray-400 uppercase mb-2">响应内容</span>
+                              <div className="bg-gray-900 rounded-lg p-3 overflow-x-auto">
+                                <pre className="font-mono text-xs text-blue-400 whitespace-pre-wrap break-all max-h-40 overflow-y-auto">
+                                  {formatJsonString(log.responseBody)}
+                                </pre>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
@@ -724,3 +814,173 @@ const Duration = ({ since }: { since: number }) => {
   }, [since]);
   return <span>{text}</span>;
 };
+
+// --- 子组件：任务队列面板 (TaskQueuePanel) ---
+interface TaskQueuePanelProps {
+  taskQueue: QueuedTaskInfo[];
+  executingTasks: ExecutingTaskInfo[];
+  pendingCount: number;
+  onRefresh: () => void;
+}
+
+function TaskQueuePanel({ taskQueue, executingTasks, pendingCount, onRefresh }: TaskQueuePanelProps) {
+  const [isQueueExpanded, setIsQueueExpanded] = useState(false);
+  const [isExecutingExpanded, setIsExecutingExpanded] = useState(true);
+  const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
+
+  const formatTime = (ms: number) => {
+    if (ms < 1000) return `${ms}ms`;
+    if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+    return `${(ms / 60000).toFixed(1)}m`;
+  };
+
+  const formatPayload = (payload: any) => {
+    try {
+      return JSON.stringify(payload, null, 2);
+    } catch {
+      return String(payload);
+    }
+  };
+
+  return (
+    <div className="bg-white/40 backdrop-blur-md rounded-3xl p-6 border border-white/50 shadow-xl">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-xl font-black text-gray-800 flex items-center">
+          <ListTodo className="w-6 h-6 mr-3 text-sky-600" />
+          任务状态
+        </h2>
+        <div className="flex items-center space-x-4">
+          <div className="flex space-x-3 text-sm">
+            <span className="px-3 py-1 bg-sky-100 text-sky-700 rounded-full font-bold">
+              队列: {taskQueue.length}
+            </span>
+            <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full font-bold">
+              执行中: {pendingCount}
+            </span>
+          </div>
+          <button
+            onClick={onRefresh}
+            className="p-2 hover:bg-white/50 rounded-full transition-colors text-gray-500"
+          >
+            <Clock className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      {/* 执行中的任务 */}
+      {executingTasks.length > 0 && (
+        <div className="mb-6">
+          <button
+            onClick={() => setIsExecutingExpanded(!isExecutingExpanded)}
+            className="flex items-center text-sm font-bold text-orange-700 mb-3"
+          >
+            {isExecutingExpanded ? <ChevronUp className="w-4 h-4 mr-1" /> : <ChevronDown className="w-4 h-4 mr-1" />}
+            执行中 ({executingTasks.length})
+          </button>
+          {isExecutingExpanded && (
+            <div className="space-y-3">
+              {executingTasks.map((task) => (
+                <div
+                  key={task.taskId}
+                  className="bg-orange-50 rounded-xl border border-orange-200 overflow-hidden"
+                >
+                  <div
+                    className="p-4 flex items-center justify-between cursor-pointer"
+                    onClick={() => setExpandedTaskId(expandedTaskId === task.taskId ? null : task.taskId)}
+                  >
+                    <div className="flex items-center space-x-4">
+                      <span className="w-8 h-8 bg-orange-200 text-orange-700 rounded-full flex items-center justify-center">
+                        <Zap className="w-4 h-4" />
+                      </span>
+                      <div>
+                        <p className="font-mono text-sm text-gray-800" title={task.taskId}>
+                          {task.taskId.slice(0, 12)}...
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          Worker: {task.workerId}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-4 text-sm">
+                      <span className="text-orange-600 font-mono">
+                        {formatTime(task.executionTime)}
+                      </span>
+                      {expandedTaskId === task.taskId ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+                    </div>
+                  </div>
+                  {expandedTaskId === task.taskId && task.payload && (
+                    <div className="px-4 pb-4 bg-gray-900 border-t border-orange-200">
+                      <p className="text-xs text-gray-400 py-2">请求内容 (Payload)</p>
+                      <pre className="font-mono text-xs text-green-400 overflow-x-auto whitespace-pre-wrap max-h-40 overflow-y-auto">
+                        {formatPayload(task.payload)}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 队列中的任务 */}
+      <div>
+        <button
+          onClick={() => setIsQueueExpanded(!isQueueExpanded)}
+          className="flex items-center text-sm font-bold text-sky-700 mb-3"
+        >
+          {isQueueExpanded ? <ChevronUp className="w-4 h-4 mr-1" /> : <ChevronDown className="w-4 h-4 mr-1" />}
+          等待队列 ({taskQueue.length})
+        </button>
+        
+        {taskQueue.length === 0 ? (
+          <div className="text-center py-6 text-gray-400">
+            <p className="text-sm">队列为空</p>
+          </div>
+        ) : isQueueExpanded && (
+          <div className="space-y-3">
+            {taskQueue.map((task) => (
+              <div
+                key={task.taskId}
+                className="bg-white/70 rounded-xl border border-white/60 overflow-hidden"
+              >
+                <div
+                  className="p-4 flex items-center justify-between cursor-pointer"
+                  onClick={() => setExpandedTaskId(expandedTaskId === task.taskId ? null : task.taskId)}
+                >
+                  <div className="flex items-center space-x-4">
+                    <span className="w-8 h-8 bg-sky-100 text-sky-700 rounded-full flex items-center justify-center font-bold text-sm">
+                      #{task.position}
+                    </span>
+                    <div>
+                      <p className="font-mono text-sm text-gray-800" title={task.taskId}>
+                        {task.taskId.slice(0, 12)}...
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {task.group} · {task.async ? '异步' : '同步'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-4 text-sm">
+                    <span className="text-gray-500">
+                      等待: <span className="font-mono text-orange-600">{formatTime(task.waitTime)}</span>
+                    </span>
+                    {expandedTaskId === task.taskId ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+                  </div>
+                </div>
+                {expandedTaskId === task.taskId && task.payload && (
+                  <div className="px-4 pb-4 bg-gray-900 border-t border-gray-200">
+                    <p className="text-xs text-gray-400 py-2">请求内容 (Payload)</p>
+                    <pre className="font-mono text-xs text-green-400 overflow-x-auto whitespace-pre-wrap max-h-40 overflow-y-auto">
+                      {formatPayload(task.payload)}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
