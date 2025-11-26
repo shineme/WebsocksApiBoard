@@ -155,6 +155,43 @@ app.prepare().then(() => {
   global.getRequestLogs = () => requestLogs;
   global.addLog = addLog;
 
+  // 添加 Worker 管理函数
+  global.addWorker = (id, ws, ip) => {
+    workers.set(id, {
+      id,
+      ws,
+      ip,
+      group: 'default',
+      connectedSince: Date.now(),
+      busy: false,
+      currentTaskId: null
+    });
+  };
+
+  global.removeWorker = (id) => {
+    workers.delete(id);
+  };
+
+  global.setWorkerBusy = (workerId, taskId) => {
+    const worker = workers.get(workerId);
+    if (worker) {
+      worker.busy = true;
+      worker.currentTaskId = taskId;
+    }
+  };
+
+  global.setWorkerIdle = (workerId) => {
+    const worker = workers.get(workerId);
+    if (worker) {
+      worker.busy = false;
+      worker.currentTaskId = null;
+    }
+  };
+
+  global.addTask = (task) => {
+    taskQueue.push(task);
+  };
+
   console.log('WebSocket server initialized on /ws');
 
   server.listen(port, () => {

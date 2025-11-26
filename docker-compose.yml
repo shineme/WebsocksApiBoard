@@ -9,8 +9,7 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
-      # 可选：设置登录密码（默认：admin / admin123）
-      # - LOGIN_USERNAME=admin
+      # 可选：设置登录密码（默认：affadsense）
       # - LOGIN_PASSWORD=your_secure_password
     restart: unless-stopped
     healthcheck:

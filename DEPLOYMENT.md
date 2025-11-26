@@ -60,19 +60,19 @@ docker-compose down
 |---------|------|--------|
 | `PORT` | 服务端口 | `3000` |
 | `NODE_ENV` | 运行环境 | `production` |
-| `LOGIN_USERNAME` | 登录用户名 | `admin` |
-| `LOGIN_PASSWORD` | 登录密码 | `affadsense` |
+| `LOGIN_PASSWORD` | 登录密码（用户名固定为 admin） | `affadsense` |
 
-**示例：自定义登录凭据**
+**示例：自定义登录密码**
 ```bash
 docker run -d \
   --name task-dispatcher \
   -p 3000:3000 \
-  -e LOGIN_USERNAME=myuser \
-  -e LOGIN_PASSWORD=securepassword \
+  -e LOGIN_PASSWORD=your_secure_password \
   --restart unless-stopped \
   ghcr.io/shineme/websocksapiboard:latest
 ```
+
+> **注意**：登录用户名固定为 `admin`，只能自定义密码。
 
 ---
 

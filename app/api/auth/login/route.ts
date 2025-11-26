@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// 从环境变量读取密码，如果未设置则使用默认密码
+// 用户名固定为 admin，只允许通过环境变量配置密码
+const ADMIN_USERNAME = 'admin';
 const ADMIN_PASSWORD = process.env.LOGIN_PASSWORD || 'affadsense';
-const ADMIN_USERNAME = process.env.LOGIN_USERNAME || 'admin';
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
 
     // 验证用户名和密码
     if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-      // 创建一个简单的 token（实际生产环境应该使用更安全的方式）
+      // 创建一个简单的 token
       const token = Buffer.from(`${username}:${Date.now()}`).toString('base64');
 
       const response = NextResponse.json({
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
       return response;
     } else {
       return NextResponse.json(
-        { success: false, message: '用户名或密码错误' },
+        { success: false, message: '密码错误' },
         { status: 401 }
       );
     }
