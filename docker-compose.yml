@@ -2,21 +2,20 @@ version: '3.8'
 
 services:
   task-dispatcher:
-    build: .
+    image: ghcr.io/shineme/websocksapiboard:latest
+    container_name: task-dispatcher-dashboard
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=production
       - PORT=3000
-      - TASK_TIMEOUT_MS=60000
-      - MAX_QUEUE_LENGTH=1000
-      - LOG_CACHE_SIZE=50
-      - METRICS_REFRESH_INTERVAL=3000
-      - LOGS_REFRESH_INTERVAL=1500
+      # 可选：设置登录密码（默认：admin / admin123）
+      # - LOGIN_USERNAME=admin
+      # - LOGIN_PASSWORD=your_secure_password
     restart: unless-stopped
-    networks:
-      - task-network
-
-networks:
-  task-network:
-    driver: bridge
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/auth/verify"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
