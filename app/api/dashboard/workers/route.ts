@@ -17,14 +17,22 @@ export async function GET(request: NextRequest) {
   try {
     const workers = dispatcher.getWorkers();
 
-    const workerList: Worker[] = Array.from(workers.values()).map(worker => ({
-      id: worker.id,
-      ip: extractIpAddress(worker.ip, request),
-      group: worker.group || 'default',
-      status: worker.busy ? 'busy' : 'idle',
-      currentTaskId: worker.currentTaskId || null,
-      connectedSince: worker.connectedSince,
-    }));
+    const workerList: Worker[] = [];
+    
+    if (workers && workers.size > 0) {
+      for (const worker of workers.values()) {
+        if (worker) {
+          workerList.push({
+            id: worker.id || 'unknown',
+            ip: extractIpAddress(worker.ip, request),
+            group: worker.group || 'default',
+            status: worker.busy ? 'busy' : 'idle',
+            currentTaskId: worker.currentTaskId || null,
+            connectedSince: worker.connectedSince || Date.now(),
+          });
+        }
+      }
+    }
 
     const response: WorkersResponse = {
       workers: workerList,
@@ -34,9 +42,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(response);
   } catch (error) {
     console.error('Error fetching workers:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch workers' },
-      { status: 500 }
-    );
+    // 返回空列表而不是错误
+    return NextResponse.json({
+      workers: [],
+      timestamp: Date.now(),
+    });
   }
 }

@@ -7,12 +7,25 @@ export async function GET() {
     const workers = dispatcher.getWorkers();
     const queue = dispatcher.getTaskQueue();
     
-    const busyWorkers = Array.from(workers.values()).filter(w => w.busy).length;
-    const avgWaitTime = dispatcher.calculateAvgWaitTime();
+    // 安全地计算忙碌的 workers
+    let busyWorkers = 0;
+    try {
+      busyWorkers = Array.from(workers.values()).filter(w => w && w.busy).length;
+    } catch (e) {
+      console.warn('Error counting busy workers:', e);
+    }
+    
+    // 安全地计算平均等待时间
+    let avgWaitTime = 0;
+    try {
+      avgWaitTime = dispatcher.calculateAvgWaitTime();
+    } catch (e) {
+      console.warn('Error calculating avg wait time:', e);
+    }
 
     const response: MetricsResponse = {
-      totalWorkers: workers.size,
-      queueLength: queue.length,
+      totalWorkers: workers?.size || 0,
+      queueLength: queue?.length || 0,
       busyWorkers,
       avgWaitTime,
       timestamp: Date.now(),
@@ -21,9 +34,13 @@ export async function GET() {
     return NextResponse.json(response);
   } catch (error) {
     console.error('Error fetching metrics:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch metrics' },
-      { status: 500 }
-    );
+    // 返回默认值而不是错误
+    return NextResponse.json({
+      totalWorkers: 0,
+      queueLength: 0,
+      busyWorkers: 0,
+      avgWaitTime: 0,
+      timestamp: Date.now(),
+    });
   }
 }

@@ -307,3 +307,233 @@ ws.onmessage = (event) => {
 - 模拟 Worker 连接
 - 手动发送任务完成/失败消息
 - 测试任务派发流程
+
+
+---
+
+## 后端 Worker 连接指南
+
+### WebSocket 连接地址
+
+```
+ws://localhost:3000/ws?group={分组名}
+```
+
+- `group` 参数可选，默认为 `default`
+- 同一分组的 Worker 会接收该分组的任务
+
+### 消息协议
+
+#### 1. 连接成功后收到的消息
+
+```json
+{
+  "type": "connected",
+  "workerId": "W1-1234abcd",
+  "message": "Connected to Task Dispatcher"
+}
+```
+
+#### 2. Worker 发送 ready 消息（表示准备接收任务）
+
+```json
+{
+  "type": "ready"
+}
+```
+
+#### 3. 收到任务
+
+```json
+{
+  "type": "task",
+  "taskId": "1e9651fd-6aa1-4b2c-9d5e-xxx",
+  "payload": {
+    "model": "default",
+    "messages": [...],
+    "data": {
+      "model": "jimeng-4.0",
+      "prompt": "美丽的少女",
+      ...
+    }
+  }
+}
+```
+
+#### 4. 返回任务完成
+
+```json
+{
+  "type": "task_complete",
+  "taskId": "1e9651fd-6aa1-4b2c-9d5e-xxx",
+  "result": {
+    "success": true,
+    "data": "处理结果..."
+  },
+  "duration": 2000
+}
+```
+
+#### 5. 返回任务失败
+
+```json
+{
+  "type": "task_error",
+  "taskId": "1e9651fd-6aa1-4b2c-9d5e-xxx",
+  "error": "错误信息",
+  "duration": 1000
+}
+```
+
+#### 6. 心跳（可选）
+
+```json
+// 发送
+{ "type": "ping" }
+
+// 收到
+{ "type": "pong" }
+```
+
+---
+
+### Node.js Worker 示例
+
+```javascript
+// 安装: npm install ws
+const WebSocket = require('ws');
+
+const ws = new WebSocket('ws://localhost:3000/ws?group=default');
+
+ws.on('open', () => {
+  console.log('已连接');
+});
+
+ws.on('message', (data) => {
+  const message = JSON.parse(data.toString());
+  
+  if (message.type === 'connected') {
+    console.log('Worker ID:', message.workerId);
+    // 发送 ready 表示准备接收任务
+    ws.send(JSON.stringify({ type: 'ready' }));
+  }
+  
+  if (message.type === 'task') {
+    console.log('收到任务:', message.taskId);
+    console.log('任务数据:', message.payload);
+    
+    // 处理任务...
+    processTask(message.payload).then(result => {
+      // 返回结果
+      ws.send(JSON.stringify({
+        type: 'task_complete',
+        taskId: message.taskId,
+        result: result,
+        duration: 1000
+      }));
+    }).catch(error => {
+      // 返回错误
+      ws.send(JSON.stringify({
+        type: 'task_error',
+        taskId: message.taskId,
+        error: error.message,
+        duration: 1000
+      }));
+    });
+  }
+});
+
+async function processTask(payload) {
+  // 实现你的任务处理逻辑
+  const { data, model, messages } = payload;
+  
+  // 示例：调用 AI 接口
+  // const result = await callAIService(data);
+  
+  return { success: true, data: '处理结果' };
+}
+```
+
+完整示例见: `examples/worker-node.js`
+
+---
+
+### Python Worker 示例
+
+```python
+# 安装: pip install websocket-client
+import json
+import websocket
+
+def on_message(ws, data):
+    message = json.loads(data)
+    
+    if message['type'] == 'connected':
+        print(f"Worker ID: {message['workerId']}")
+        ws.send(json.dumps({'type': 'ready'}))
+    
+    elif message['type'] == 'task':
+        task_id = message['taskId']
+        payload = message['payload']
+        print(f"收到任务: {task_id}")
+        
+        try:
+            # 处理任务
+            result = process_task(payload)
+            
+            ws.send(json.dumps({
+                'type': 'task_complete',
+                'taskId': task_id,
+                'result': result,
+                'duration': 1000
+            }))
+        except Exception as e:
+            ws.send(json.dumps({
+                'type': 'task_error',
+                'taskId': task_id,
+                'error': str(e),
+                'duration': 1000
+            }))
+
+def process_task(payload):
+    # 实现你的任务处理逻辑
+    data = payload.get('data', {})
+    return {'success': True, 'data': '处理结果'}
+
+def on_open(ws):
+    print("已连接")
+
+ws = websocket.WebSocketApp(
+    'ws://localhost:3000/ws?group=default',
+    on_open=on_open,
+    on_message=on_message
+)
+ws.run_forever()
+```
+
+完整示例见: `examples/worker-python.py`
+
+---
+
+### Worker 分组
+
+通过 URL 参数指定分组：
+
+```
+ws://localhost:3000/ws?group=gpu-cluster
+ws://localhost:3000/ws?group=cpu-workers
+ws://localhost:3000/ws?group=image-processing
+```
+
+客户端提交任务时指定分组：
+
+```bash
+curl -X POST http://localhost:3000/api/openai \
+  -H "Content-Type: application/json" \
+  -d '{
+    "data": {...},
+    "group": "gpu-cluster"
+  }'
+```
+
+任务会被派发到对应分组的空闲 Worker。

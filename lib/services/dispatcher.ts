@@ -34,7 +34,9 @@ class TaskDispatcher {
 
     const now = Date.now();
     const totalWaitTime = queue.reduce((sum: number, task: any) => {
-      return sum + (now - task.timestamp);
+      // 支持新旧两种字段名
+      const enqueueTime = task.enqueuedAt || task.timestamp || now;
+      return sum + (now - enqueueTime);
     }, 0);
 
     return Math.round(totalWaitTime / queue.length);
