@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  task-dispatcher:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - TASK_TIMEOUT_MS=60000
+      - MAX_QUEUE_LENGTH=1000
+      - LOG_CACHE_SIZE=50
+      - METRICS_REFRESH_INTERVAL=3000
+      - LOGS_REFRESH_INTERVAL=1500
+    restart: unless-stopped
+    networks:
+      - task-network
+
+networks:
+  task-network:
+    driver: bridge
