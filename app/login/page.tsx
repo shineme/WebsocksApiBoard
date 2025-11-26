@@ -80,7 +80,7 @@ export default function LoginPage() {
             <span className="text-4xl text-black filter drop-shadow-[0_2px_3px_rgba(0,0,0,0.2)]">⚫</span>
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight text-gray-800 mb-2">
-            Soot Spirit Login
+            煤炭精灵登录
           </h1>
           <p className="text-green-600 text-sm tracking-widest opacity-80">
             请输入口令进入小屋
@@ -95,7 +95,7 @@ export default function LoginPage() {
                 htmlFor="password"
                 className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2"
               >
-                Secret Key // 密钥
+                密钥
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -143,7 +143,7 @@ export default function LoginPage() {
         {/* Footer */}
         <div className="mt-8 text-center">
           <p className="text-xs text-green-700/50 font-mono">
-            SOOT SPIRIT DISPATCHER v1.0
+            煤炭精灵调度器 v1.0
           </p>
         </div>
       </div>

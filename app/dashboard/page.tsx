@@ -210,10 +210,10 @@ export default function DashboardPage() {
             </div>
             <div>
               <h1 className="text-2xl font-black tracking-tight text-gray-800">
-                Task<span className="text-green-600">Orchard</span>
+                任务<span className="text-green-600">果园</span>
               </h1>
               <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">
-                System Monitor
+                系统监控
               </p>
             </div>
           </div>
@@ -229,7 +229,7 @@ export default function DashboardPage() {
               className="flex items-center text-gray-500 hover:text-red-500 transition-colors text-sm font-bold group"
             >
               <LogOut className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" />
-              LOGOUT
+              退出
             </button>
           </div>
         </header>
@@ -237,14 +237,14 @@ export default function DashboardPage() {
         {/* Navigation Tabs */}
         <div className="flex justify-center mb-10 space-x-6">
           <TabButton
-            label="DASHBOARD"
+            label="仪表盘"
             icon={Home}
             active={activeTab === 'dashboard'}
             onClick={() => setActiveTab('dashboard')}
             color="green"
           />
           <TabButton
-            label="SYSTEM LOGS"
+            label="系统日志"
             icon={ScrollText}
             active={activeTab === 'logs'}
             onClick={() => setActiveTab('logs')}
@@ -259,31 +259,31 @@ export default function DashboardPage() {
               {/* Metrics Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <MetricCard
-                  title="Active Workers"
+                  title="活跃节点"
                   value={`${busyCount}/${totalCount}`}
                   icon={Zap}
                   color="indigo"
                   progress={totalCount > 0 ? (busyCount / totalCount) * 100 : 0}
-                  unit="nodes"
+                  unit="个"
                 />
                 <MetricCard
-                  title="Queue Depth"
+                  title="队列深度"
                   value={queueLength}
                   icon={Cloud}
                   color="sky"
                   progress={Math.min(queueLength * 10, 100)}
-                  unit="tasks"
+                  unit="个任务"
                 />
                 <MetricCard
-                  title="Avg Wait Time"
+                  title="平均等待"
                   value={avgWait}
                   icon={Clock}
                   color="orange"
                   progress={Math.min(avgWait / 100, 100)}
-                  unit="ms"
+                  unit="毫秒"
                 />
                 <MetricCard
-                  title="System Health"
+                  title="系统健康"
                   value="100"
                   icon={Heart}
                   color="green"
@@ -297,7 +297,7 @@ export default function DashboardPage() {
                 <div className="flex justify-between items-center mb-8">
                   <h2 className="text-xl font-black text-gray-800 flex items-center">
                     <Compass className="w-6 h-6 mr-3 text-green-600" />
-                    Worker Nodes
+                    工作节点
                   </h2>
 
                   {/* Group Filter */}
@@ -329,7 +329,7 @@ export default function DashboardPage() {
                         <div>
                           <h3 className="font-bold text-gray-800 text-lg">{worker.id}</h3>
                           <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mt-1">
-                            {worker.group || 'Default Group'}
+                            {worker.group || '默认分组'}
                           </p>
                         </div>
                         <StatusBadge status={worker.status} />
@@ -337,13 +337,13 @@ export default function DashboardPage() {
 
                       <div className="space-y-3">
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-500">Current Task</span>
-                          <span className="font-mono font-medium text-gray-700 truncate max-w-[120px]" title={worker.currentTaskId || 'Idle'}>
+                          <span className="text-gray-500">当前任务</span>
+                          <span className="font-mono font-medium text-gray-700 truncate max-w-[120px]" title={worker.currentTaskId || '空闲'}>
                             {worker.currentTaskId || '-'}
                           </span>
                         </div>
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-500">Uptime</span>
+                          <span className="text-gray-500">运行时长</span>
                           <span className="font-mono font-medium text-gray-700">
                             <Duration since={worker.connectedSince} />
                           </span>
@@ -361,7 +361,7 @@ export default function DashboardPage() {
                           ) : (
                             <>
                               <PlayCircle className="w-4 h-4 mr-2" />
-                              Assign Task
+                              分配任务
                             </>
                           )}
                         </button>
@@ -379,7 +379,7 @@ export default function DashboardPage() {
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-black text-gray-800 flex items-center">
                   <Terminal className="w-6 h-6 mr-3 text-yellow-600" />
-                  System Logs
+                  系统日志
                 </h2>
                 <button
                   onClick={fetchLogs}
@@ -418,11 +418,11 @@ export default function DashboardPage() {
                       <div className="px-4 pb-4 bg-gray-50/50 border-t border-gray-100">
                         <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
                           <div>
-                            <span className="block text-xs font-bold text-gray-400 uppercase mb-1">Duration</span>
-                            <span className="font-mono text-gray-700">{log.latency}ms</span>
+                            <span className="block text-xs font-bold text-gray-400 uppercase mb-1">耗时</span>
+                            <span className="font-mono text-gray-700">{log.latency}毫秒</span>
                           </div>
                           <div>
-                            <span className="block text-xs font-bold text-gray-400 uppercase mb-1">Request Body</span>
+                            <span className="block text-xs font-bold text-gray-400 uppercase mb-1">请求内容</span>
                             <span className="font-mono text-gray-700 truncate block" title={log.requestBody}>{log.requestBody || '-'}</span>
                           </div>
                         </div>
@@ -433,7 +433,7 @@ export default function DashboardPage() {
                 {logs.length === 0 && (
                   <div className="text-center py-12 text-gray-400">
                     <ScrollText className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                    <p>No logs available</p>
+                    <p>暂无日志</p>
                   </div>
                 )}
               </div>
@@ -581,8 +581,8 @@ ws.onmessage = (event) => {
             <Terminal className="w-6 h-6" />
           </div>
           <div className="text-left">
-            <h3 className="font-bold text-gray-800 text-lg">Developer Documentation</h3>
-            <p className="text-xs text-gray-500 font-medium">API Integration & Worker Connection</p>
+            <h3 className="font-bold text-gray-800 text-lg">开发者文档</h3>
+            <p className="text-xs text-gray-500 font-medium">API 集成 & 工作节点连接</p>
           </div>
         </div>
         <div className={`transform transition-transform duration-500 ${isOpen ? 'rotate-180' : ''}`}>
@@ -601,7 +601,7 @@ ws.onmessage = (event) => {
                 className={`pb-2 text-sm font-bold transition-colors relative ${activeTab === 'http' ? 'text-green-600' : 'text-gray-400 hover:text-gray-600'
                   }`}
               >
-                HTTP Dispatch API
+                HTTP 分发接口
                 {activeTab === 'http' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-green-500 rounded-full"></div>}
               </button>
               <button
@@ -609,7 +609,7 @@ ws.onmessage = (event) => {
                 className={`pb-2 text-sm font-bold transition-colors relative ${activeTab === 'ws' ? 'text-green-600' : 'text-gray-400 hover:text-gray-600'
                   }`}
               >
-                WebSocket Worker
+                WebSocket 工作节点
                 {activeTab === 'ws' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-green-500 rounded-full"></div>}
               </button>
             </div>
@@ -623,10 +623,10 @@ ws.onmessage = (event) => {
                     <div>
                       <h4 className="flex items-center text-green-700 font-bold mb-2">
                         <Zap className="w-4 h-4 mr-2" />
-                        Dispatch Endpoint
+                        分发端点
                       </h4>
                       <p className="text-gray-600 text-sm leading-relaxed">
-                        Send tasks to specific worker groups via HTTP POST. The system will route the task to an available worker in the target group.
+                        通过 HTTP POST 向指定工作组发送任务。系统会将任务路由到目标组中的可用工作节点。
                       </p>
                     </div>
                     <div className="flex items-center space-x-4 text-sm">
@@ -634,11 +634,11 @@ ws.onmessage = (event) => {
                       <span className="font-mono text-gray-600">/api/dispatch</span>
                     </div>
                     <div>
-                      <h4 className="font-bold text-gray-800 mb-3 text-sm">Parameters</h4>
+                      <h4 className="font-bold text-gray-800 mb-3 text-sm">参数</h4>
                       <ul className="space-y-2 text-sm text-gray-600">
                         <li className="flex items-start">
                           <span className="font-mono text-green-600 w-20 shrink-0">group</span>
-                          <span>Target group (e.g., "gpu-cluster")</span>
+                          <span>目标分组 (例如 "gpu-cluster")</span>
                         </li>
                         <li className="flex items-start">
                           <span className="font-mono text-green-600 w-20 shrink-0">priority</span>
@@ -652,10 +652,10 @@ ws.onmessage = (event) => {
                     <div>
                       <h4 className="flex items-center text-green-700 font-bold mb-2">
                         <Zap className="w-4 h-4 mr-2" />
-                        Worker Connection
+                        工作节点连接
                       </h4>
                       <p className="text-gray-600 text-sm leading-relaxed">
-                        Connect workers via WebSocket to receive tasks in real-time. Use the <code className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-800 font-mono text-xs">group</code> query parameter to categorize the worker.
+                        通过 WebSocket 连接工作节点以实时接收任务。使用 <code className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-800 font-mono text-xs">group</code> 查询参数来分类工作节点。
                       </p>
                     </div>
                     <div className="flex items-center space-x-4 text-sm">
@@ -663,13 +663,13 @@ ws.onmessage = (event) => {
                       <span className="font-mono text-gray-600">/ws</span>
                     </div>
                     <div>
-                      <h4 className="font-bold text-gray-800 mb-3 text-sm">Query Parameters</h4>
+                      <h4 className="font-bold text-gray-800 mb-3 text-sm">查询参数</h4>
                       <ul className="space-y-2 text-sm text-gray-600">
                         <li className="flex items-start">
                           <span className="font-mono text-green-600 w-20 shrink-0">group</span>
                           <span>
-                            <strong>Required.</strong> The group ID this worker belongs to.
-                            <br /><span className="text-xs text-gray-400">Example: ?group=image-processing</span>
+                            <strong>必填。</strong> 此工作节点所属的分组 ID。
+                            <br /><span className="text-xs text-gray-400">示例: ?group=image-processing</span>
                           </span>
                         </li>
                       </ul>
@@ -684,7 +684,7 @@ ws.onmessage = (event) => {
                 <div className="relative bg-gray-900 rounded-2xl p-6 shadow-2xl overflow-hidden">
                   <div className="flex justify-between items-center mb-4 border-b border-gray-700 pb-4">
                     <span className="text-gray-400 text-xs font-mono">
-                      {activeTab === 'http' ? 'cURL Example' : 'JavaScript Client'}
+                      {activeTab === 'http' ? 'cURL 示例' : 'JavaScript 客户端'}
                     </span>
                     <button
                       onClick={() => copyToClipboard(activeTab === 'http' ? httpSnippet : wsSnippet)}
