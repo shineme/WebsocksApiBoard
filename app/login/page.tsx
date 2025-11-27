@@ -2,12 +2,21 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Lock, LogIn, Heart, Cloud, Sun } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Lock, Sparkles, Zap, Star } from 'lucide-react';
+import {
+  BubbleButton,
+  FloatingOrb,
+  GradientBlob,
+  MagneticText,
+  WaterDropEffect
+} from '@/components/DopamineComponents';
 
 export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -25,128 +34,278 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (data.success) {
-        router.push('/dashboard');
+        setShowSuccess(true);
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 1200);
       } else {
         setError(data.message || '密码错误');
+        setLoading(false);
       }
     } catch (err) {
       setError('登录失败，请重试');
-    } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sky-50 to-green-100 flex items-center justify-center p-4 overflow-hidden relative font-sans selection:bg-yellow-200/50">
+    <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-4">
+      {/* 动态渐变背景 */}
+      <div className="fixed inset-0 bg-gradient-to-br from-purple-50 via-white to-cyan-50" />
 
-      {/* --- 样式注入 (CSS 动画) --- */}
-      <style>{`
-        @keyframes cloud-drift {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(20%); }
-        }
-        @keyframes sun-pulse {
-            0%, 100% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.05); opacity: 0.8; }
-        }
-        .cloud-background {
-            animation: cloud-drift 80s linear infinite alternate;
-        }
-        .sun-animation {
-            animation: sun-pulse 5s ease-in-out infinite;
-        }
-        .paper-card {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(4px);
-            border: 1px solid rgba(0, 0, 0, 0.05);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.03);
-            transition: all 0.3s ease;
-        }
-      `}</style>
+      {/* 漂浮装饰球体 */}
+      <FloatingOrb
+        color="rgba(147, 51, 234, 0.15)"
+        size={600}
+        delay={0}
+        className="top-0 -left-1/4"
+      />
+      <FloatingOrb
+        color="rgba(6, 182, 212, 0.15)"
+        size={500}
+        delay={3}
+        className="bottom-0 -right-1/4"
+      />
+      <FloatingOrb
+        color="rgba(236, 72, 153, 0.12)"
+        size={400}
+        delay={6}
+        className="top-1/3 right-1/4"
+      />
 
-      {/* --- 背景装饰 --- */}
-      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-10 right-10 w-24 h-24 rounded-full bg-yellow-300 opacity-60 sun-animation shadow-xl shadow-yellow-300/50" />
-        <div className="absolute top-1/4 -left-1/4 w-1/2 h-40 bg-white/70 rounded-full cloud-background" style={{ borderRadius: '50% 50% 50% 50% / 60% 60% 40% 40%' }} />
-        <div className="absolute bottom-1/3 -right-1/4 w-1/3 h-32 bg-white/50 rounded-full cloud-background" style={{ borderRadius: '50% 50% 50% 50% / 40% 40% 60% 60%' }} />
-      </div>
+      {/* 渐变Blob装饰 */}
+      <GradientBlob className="absolute top-20 left-20 w-64 h-64 bg-gradient-to-br from-purple-300/20 to-pink-300/20" />
+      <GradientBlob className="absolute bottom-20 right-20 w-80 h-80 bg-gradient-to-br from-cyan-300/20 to-blue-300/20" />
 
-      <div className="relative z-10 w-full max-w-md">
+      {/* 主容器 */}
+      <motion.div
+        initial={{ opacity: 0, y: 50 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{
+          type: "spring",
+          stiffness: 260,
+          damping: 20
+        }}
+        className="relative z-10 w-full max-w-md"
+      >
+        {/* Logo区域 */}
+        <div className="text-center mb-10">
+          <motion.div
+            className="inline-block mb-6"
+            animate={{
+              rotate: [0, 5, -5, 0],
+              scale: [1, 1.05, 1],
+            }}
+            transition={{
+              duration: 6,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          >
+            <div className="relative">
+              {/* 发光光环 */}
+              <motion.div
+                className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 blur-2xl"
+                animate={{
+                  scale: [1, 1.2, 1],
+                  opacity: [0.5, 0.8, 0.5]
+                }}
+                transition={{
+                  duration: 3,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              />
 
-        {/* Logo / Title */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-white/80 rounded-full mb-4 shadow-lg shadow-yellow-100 border-2 border-yellow-200">
-            {/* 煤炭精灵 (Susuwatari) 模仿 */}
-            <span className="text-4xl text-black filter drop-shadow-[0_2px_3px_rgba(0,0,0,0.2)]">⚫</span>
-          </div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-gray-800 mb-2">
-            煤炭精灵登录
-          </h1>
-          <p className="text-green-600 text-sm tracking-widest opacity-80">
-            请输入口令进入小屋
-          </p>
+              {/* 主图标 */}
+              <div className="relative w-24 h-24 rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-cyan-500 flex items-center justify-center shadow-2xl shadow-purple-500/50">
+                <Sparkles className="w-12 h-12 text-white" strokeWidth={2.5} />
+              </div>
+
+              {/* 旋转星星装饰 */}
+              {[...Array(3)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  className="absolute"
+                  style={{
+                    top: '50%',
+                    left: '50%',
+                  }}
+                  animate={{
+                    rotate: [0, 360],
+                    x: Math.cos((i * 120 * Math.PI) / 180) * 60,
+                    y: Math.sin((i * 120 * Math.PI) / 180) * 60,
+                  }}
+                  transition={{
+                    duration: 8,
+                    repeat: Infinity,
+                    ease: "linear",
+                    delay: i * 0.3
+                  }}
+                >
+                  <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+
+          <MagneticText
+            as="h1"
+            className="text-5xl font-black mb-3 gradient-text"
+          >
+            多巴胺登录
+          </MagneticText>
+
+          <motion.p
+            className="text-gray-500 font-medium tracking-wide"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+          >
+            准备好进入<span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-cyan-500 font-bold">解压游乐场</span>了吗？
+          </motion.p>
         </div>
 
-        {/* Login Form */}
-        <div className="paper-card rounded-2xl p-8">
+        {/* 登录卡片 */}
+        <motion.div
+          className="frosted-glass rounded-3xl p-8 shadow-2xl shadow-purple-200/50"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{
+            delay: 0.2,
+            type: "spring",
+            stiffness: 200,
+            damping: 15
+          }}
+        >
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* 密码输入框 */}
             <div>
               <label
                 htmlFor="password"
-                className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2"
+                className="block text-sm font-bold text-gray-700 mb-3 uppercase tracking-wider"
               >
-                密钥
+                🔐 访问密钥
               </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
+
+              <motion.div
+                className="relative"
+                whileFocus={{ scale: 1.02 }}
+              >
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Lock className="h-5 w-5 text-purple-400" />
                 </div>
-                <input
+                <motion.input
                   id="password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-400 focus:border-transparent transition-all outline-none text-gray-700 placeholder-gray-400"
-                  placeholder="••••••••"
+                  className="w-full pl-12 pr-4 py-4 bg-white/80 border-2 border-purple-200 rounded-2xl 
+                    focus:ring-4 focus:ring-purple-300/50 focus:border-purple-400 
+                    transition-all outline-none text-gray-800 font-medium
+                    placeholder-gray-400"
+                  placeholder="输入神秘口令..."
                   required
                   autoFocus
+                  whileFocus={{
+                    borderColor: "#a855f7",
+                    boxShadow: "0 0 30px rgba(168, 85, 247, 0.3)"
+                  }}
                 />
-              </div>
+
+                {/* 输入框光效 */}
+                <motion.div
+                  className="absolute inset-0 rounded-2xl bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 opacity-0 blur-xl"
+                  animate={{
+                    opacity: password.length > 0 ? [0.1, 0.3, 0.1] : 0
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                />
+              </motion.div>
             </div>
 
-            {error && (
-              <div className="bg-red-50/80 border border-red-200 rounded-xl p-3 flex items-center animate-pulse">
-                <Heart className="w-4 h-4 text-red-500 mr-2" />
-                <p className="text-sm text-red-600 font-medium">{error}</p>
-              </div>
-            )}
+            {/* 错误提示 */}
+            <AnimatePresence>
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10, scale: 0.9 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -10, scale: 0.9 }}
+                  className="bg-gradient-to-r from-red-50 to-pink-50 border-2 border-red-200 rounded-2xl p-4 flex items-center space-x-3"
+                >
+                  <Zap className="w-5 h-5 text-red-500 flex-shrink-0" />
+                  <p className="text-sm text-red-600 font-bold">{error}</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-            <button
-              type="submit"
+            {/* 提交按钮 */}
+            <BubbleButton
+              variant="primary"
+              size="lg"
               disabled={loading}
-              className={`
-                w-full flex items-center justify-center space-x-2 
-                px-4 py-3 rounded-xl text-white font-bold tracking-wide
-                transition-all duration-300 shadow-lg
-                ${loading
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 hover:shadow-green-200 hover:scale-[1.02]'
-                }
-              `}
+              className="w-full !py-4 text-lg !shadow-2xl !shadow-purple-400/50"
             >
-              <LogIn className="w-5 h-5" />
-              <span>{loading ? '正在开门...' : '进入小屋'}</span>
-            </button>
+              {loading ? (
+                <div className="flex items-center space-x-2">
+                  <motion.div
+                    className="w-5 h-5 border-3 border-white border-t-transparent rounded-full"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  />
+                  <span>正在解锁...</span>
+                </div>
+              ) : (
+                <div className="flex items-center space-x-2">
+                  <Sparkles className="w-5 h-5" />
+                  <span>开始探索</span>
+                </div>
+              )}
+            </BubbleButton>
           </form>
-        </div>
+        </motion.div>
 
-        {/* Footer */}
-        <div className="mt-8 text-center">
-          <p className="text-xs text-green-700/50 font-mono">
-            煤炭精灵调度器 v1.0
+        {/* 底部装饰 */}
+        <motion.div
+          className="mt-8 text-center space-y-2"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+        >
+          <div className="flex items-center justify-center space-x-2">
+            {[...Array(5)].map((_, i) => (
+              <motion.div
+                key={i}
+                className="w-2 h-2 rounded-full bg-gradient-to-r from-purple-400 to-cyan-400"
+                animate={{
+                  scale: [1, 1.5, 1],
+                  opacity: [0.3, 1, 0.3]
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  delay: i * 0.2,
+                  ease: "easeInOut"
+                }}
+              />
+            ))}
+          </div>
+          <p className="text-xs text-gray-400 font-mono tracking-wider">
+            Dopamine Playground v2.0 • 解压从现在开始
           </p>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
+
+      {/* 成功动效 */}
+      <WaterDropEffect
+        trigger={showSuccess}
+        onComplete={() => { }}
+      />
     </div>
   );
 }
+

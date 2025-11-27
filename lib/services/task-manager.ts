@@ -26,13 +26,13 @@ import {
 class TaskManager {
   /** Tasks waiting in queue */
   private taskQueue: QueuedTask[] = [];
-  
+
   /** Tasks being executed, keyed by taskId */
   private pendingTasks: Map<string, PendingTask> = new Map();
 
   /** Store payload for pending tasks (for dashboard display) */
   private pendingTaskPayloads: Map<string, any> = new Map();
-  
+
   /** Completed task results with TTL, keyed by taskId */
   private taskResults: Map<string, TaskResult> = new Map();
 
@@ -132,13 +132,13 @@ class TaskManager {
 
     // Try to dispatch immediately if idle worker available
     const idleWorker = this.findIdleWorker(group);
-    
+
     if (idleWorker) {
       // IMPORTANT: Mark worker as busy IMMEDIATELY to prevent race conditions
       // This must happen synchronously before any await
       idleWorker.busy = true;
       idleWorker.currentTaskId = taskId;
-      
+
       // Dispatch directly to worker
       return this.dispatchToWorker(queuedTask, idleWorker, isAsync);
     }
@@ -211,8 +211,8 @@ class TaskManager {
     // Create a dummy promise for async tasks
     const pendingTask: PendingTask = {
       taskId,
-      resolve: () => {},
-      reject: () => {},
+      resolve: () => { },
+      reject: () => { },
       timeoutId,
       workerId,
       startedAt: Date.now(),
@@ -345,20 +345,20 @@ class TaskManager {
     console.log(`[TaskManager] handleTaskResult called for taskId: ${taskId}`);
     console.log(`[TaskManager] pendingTasks count: ${this.pendingTasks.size}`);
     console.log(`[TaskManager] pendingTasks keys: ${Array.from(this.pendingTasks.keys()).join(', ')}`);
-    
+
     const pendingTask = this.pendingTasks.get(taskId);
-    
+
     // Handle late result gracefully (task may have timed out)
     if (!pendingTask) {
       console.log(`[TaskManager] Late result for task ${taskId}, ignoring (not found in pendingTasks)`);
       return;
     }
-    
+
     console.log(`[TaskManager] Found pending task, resolving...`);
 
     // Clear timeout
     clearTimeout(pendingTask.timeoutId);
-    
+
     // Remove from pending
     this.pendingTasks.delete(taskId);
     this.pendingTaskPayloads.delete(taskId);
@@ -421,7 +421,7 @@ class TaskManager {
     while (this.taskQueue.length > 0) {
       const task = this.taskQueue[0];
       const idleWorker = this.findIdleWorker(task.group);
-      
+
       if (!idleWorker) {
         // No idle worker available
         break;
@@ -469,14 +469,14 @@ class TaskManager {
       if (pendingTask.workerId === workerId) {
         // Clear timeout
         clearTimeout(pendingTask.timeoutId);
-        
+
         // Remove from pending
         this.pendingTasks.delete(taskId);
         this.pendingTaskPayloads.delete(taskId);
-        
+
         // Store failed result
         this.storeTaskResult(taskId, 'failed', undefined, 'Worker disconnected');
-        
+
         // Reject the promise
         pendingTask.reject(new Error('Worker disconnected'));
       }
@@ -624,14 +624,14 @@ if (typeof global !== 'undefined') {
   (global as any).handleTaskResult = (taskId: string, result: any, error?: string) => {
     taskManager.handleTaskResult(taskId, result, error || undefined);
   };
-  
+
   (global as any).handleWorkerDisconnect = (workerId: string) => {
     taskManager.handleWorkerDisconnect(workerId);
   };
-  
+
   (global as any).tryDispatchFromQueue = () => {
     taskManager.tryDispatchFromQueue();
   };
-  
+
   console.log('[TaskManager] Global functions registered');
 }

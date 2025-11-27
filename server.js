@@ -188,7 +188,13 @@ app.prepare().then(async () => {
 
   // 导出数据访问函数供 API 使用
   global.getWorkers = () => workers;
-  global.getTaskQueue = () => taskManager ? taskManager.getTaskQueue() : taskQueue;
+  global.getTaskQueue = () => {
+    // 优先使用 Task Manager 的全局函数，如果不存在则返回本地 taskQueue
+    if (global.getTaskQueueData) {
+      return global.getTaskQueueData();
+    }
+    return taskQueue;
+  };
   global.getRequestLogs = () => requestLogs;
   global.addLog = addLog;
 
